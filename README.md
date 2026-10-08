@@ -6,7 +6,7 @@ Marketing site for [wadecompliance.com](https://wadecompliance.com/). Plain HTML
 | --- | --- |
 | `index.html` | Page content and structure |
 | `styles.css` | Design tokens (colors, type), layout, 3D effects, animations |
-| `main.js` | Scroll reveals, pointer-driven 3D tilt, sticky header state, contact form |
+| `main.js` | Path chooser, SOC 2 self-check, service tabs, 3-step demo booking, scroll progress, 3D pointer effects |
 | `favicon.svg` | Browser tab icon |
 
 ## Run locally
@@ -23,5 +23,6 @@ Upload the four files above to any static host (Netlify, Vercel, GitHub Pages, C
 ## Editing
 
 - **Accent color:** change `--accent` at the top of `styles.css`.
-- **Contact form:** currently opens the visitor's email app addressed to `donta@wadecompliance.com`. To receive submissions directly, point the form at a form service (Formspree, Netlify Forms, etc.) and remove the `mailto` handler in `main.js`.
+- **Demo booking:** the 3-step form opens the visitor's email app with a pre-filled request to `donta@wadecompliance.com`. To receive bookings directly, connect it to a form or scheduling service (Formspree, Cal.com, Calendly) in the submit handler in `main.js`.
+- **SOC 2 self-check:** questions and result tiers live in `index.html` (`#soc2`) and `TIERS` in `main.js`. Answers stay in the visitor's browser.
 - **Motion:** all animation is disabled automatically for visitors who set "reduce motion" on their device.
