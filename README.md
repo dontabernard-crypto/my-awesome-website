@@ -6,7 +6,7 @@ Marketing site for [wadecompliance.com](https://wadecompliance.com/). Plain HTML
 | --- | --- |
 | `index.html` | Page content and structure |
 | `styles.css` | Design tokens (colors, type), layout, 3D effects, animations |
-| `main.js` | Path chooser, SOC 2 self-check, service tabs, 3-step demo booking, scroll progress, 3D pointer effects |
+| `main.js` | Path chooser, SOC 2 self-check, service tabs, Google Calendar booking, scroll progress, 3D pointer effects |
 | `favicon.svg` | Browser tab icon |
 
 ## Run locally
@@ -23,6 +23,6 @@ Upload the four files above to any static host (Netlify, Vercel, GitHub Pages, C
 ## Editing
 
 - **Accent color:** change `--accent` at the top of `styles.css`.
-- **Demo booking:** the 3-step form opens the visitor's email app with a pre-filled request to `donta@wadecompliance.com`. To receive bookings directly, connect it to a form or scheduling service (Formspree, Cal.com, Calendly) in the submit handler in `main.js`.
+- **Book a demo (Google Calendar):** paste your appointment schedule link into `data-booking-url` on the `#demo` section in `index.html`. A full `https://calendar.google.com/calendar/appointments/schedules/…` link is embedded on the page; a short `calendar.app.google/…` link opens in a new tab. Until a link is set, the button falls back to email.
 - **SOC 2 self-check:** questions and result tiers live in `index.html` (`#soc2`) and `TIERS` in `main.js`. Answers stay in the visitor's browser.
 - **Motion:** all animation is disabled automatically for visitors who set "reduce motion" on their device.
