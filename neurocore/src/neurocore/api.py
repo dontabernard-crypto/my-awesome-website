@@ -8,12 +8,13 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlmodel import select
 
 from .benchmark import latest_benchmark
-from .db import init_db, session_scope
+from .db import SELF, assert_can_view_individual, init_db, session_scope
 from .gamification import generate_quests, get_or_create_avatar
 from .models import ActivityEvent, MetricDefinition, RoleConfig, User, utcnow
 from .seed import seed_roles
@@ -27,6 +28,13 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="NeuroCore", version="0.1.0", lifespan=lifespan)
+
+OTHER = "other"
+
+
+@app.exception_handler(PermissionError)
+async def _forbidden(_request: Request, exc: PermissionError) -> JSONResponse:
+    return JSONResponse(status_code=403, content={"detail": str(exc)})
 
 
 class UserCreate(BaseModel):
@@ -67,6 +75,20 @@ def _require_user(user_id: int) -> User:
         user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail=f"user {user_id} not found")
+    return user
+
+
+def _require_individual_access(user_id: int, viewer_id: int | None) -> User:
+    """404 for unknown users, then RoleConfig.privacy_floor via assert_can_view_individual.
+
+    Until real auth exists the caller identifies itself with the X-Viewer-Id header:
+    matching the subject means "self", anything else (or nothing) means "other".
+    """
+    user = _require_user(user_id)
+    with session_scope() as session:
+        role = session.get(RoleConfig, user.role_config_id)
+    viewer_role = SELF if viewer_id == user_id else OTHER
+    assert_can_view_individual(role, viewer_role)
     return user
 
 
@@ -127,8 +149,8 @@ def create_user(body: UserCreate) -> dict:
 
 
 @app.get("/users/{user_id}/avatar")
-def user_avatar(user_id: int) -> dict:
-    _require_user(user_id)
+def user_avatar(user_id: int, x_viewer_id: int | None = Header(default=None)) -> dict:
+    _require_individual_access(user_id, x_viewer_id)
     avatar = get_or_create_avatar(user_id)
     return {
         "id": avatar.id,
@@ -145,8 +167,8 @@ def user_avatar(user_id: int) -> dict:
 
 
 @app.get("/users/{user_id}/quests")
-def user_quests(user_id: int) -> list[dict]:
-    _require_user(user_id)
+def user_quests(user_id: int, x_viewer_id: int | None = Header(default=None)) -> list[dict]:
+    _require_individual_access(user_id, x_viewer_id)
     return generate_quests(user_id)
 
 
