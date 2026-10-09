@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "neurocore"
+version = "0.1.0"
+description = "Horizontal executive-function + performance platform"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "sqlmodel>=0.0.16",
+    "pydantic>=2.5",
+    "python-dotenv>=1.0",
+]
+
+
+[project.optional-dependencies]
+slack = ["slack-bolt>=1.18"]
+dev = ["pytest>=7.4", "ruff>=0.4"]
+
+
+[project.scripts]
+neurocore = "neurocore.cli:main"
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
