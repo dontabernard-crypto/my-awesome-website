@@ -4,11 +4,12 @@ from datetime import datetime, timedelta, timezone
 
 from sqlmodel import select
 
-from .benchmark import latest_benchmark
+from .benchmark import latest_benchmark, segment_label
 from .db import session_scope
 from .models import (
     ActivityEvent,
     Avatar,
+    BenchmarkProfile,
     Direction,
     RoleConfig,
     User,
@@ -30,8 +31,32 @@ def _ratio(actual: float, target: float, direction: Direction) -> float:
     return max(XP_FLOOR, min(XP_CAP, raw))
 
 
-def compute_xp(role_slug: str, user_daily: dict[str, float]) -> dict[str, float]:
-    profile_record = latest_benchmark(role_slug)
+def benchmark_for_user(
+    role_slug: str, user_segment: dict | None = None
+) -> BenchmarkProfile | None:
+    """Most specific benchmark for a user's segment, falling back to the role-wide one.
+
+    Segmentation keys are tried in RoleConfig.segmentation_keys order; the first key
+    whose segment has a stored profile wins.
+    """
+    if user_segment:
+        with session_scope() as session:
+            role = session.exec(select(RoleConfig).where(RoleConfig.slug == role_slug)).first()
+            keys = list(role.segmentation_keys or []) if role else []
+        for key in keys:
+            value = user_segment.get(key)
+            if value is None:
+                continue
+            record = latest_benchmark(role_slug, segment=segment_label(key, value))
+            if record:
+                return record
+    return latest_benchmark(role_slug)
+
+
+def compute_xp(
+    role_slug: str, user_daily: dict[str, float], user_segment: dict | None = None
+) -> dict[str, float]:
+    profile_record = benchmark_for_user(role_slug, user_segment)
     if not profile_record:
         return {"wealth": 0.0, "wisdom": 0.0, "health": 0.0, "total": 0.0}
 
@@ -103,7 +128,7 @@ def apply_daily_xp(user_id: int, day_offset_days: int = 0) -> dict:
         for e in events:
             daily[e.metric_key] = daily.get(e.metric_key, 0.0) + e.value
 
-        xp = compute_xp(role.slug, daily)
+        xp = compute_xp(role.slug, daily, user.segment)
 
         avatar = session.exec(select(Avatar).where(Avatar.user_id == user_id)).first()
         if not avatar:
@@ -142,7 +167,7 @@ def generate_quests(user_id: int) -> list[dict]:
         role = session.get(RoleConfig, user.role_config_id)
         if not role:
             return []
-        profile_record = latest_benchmark(role.slug)
+        profile_record = benchmark_for_user(role.slug, user.segment)
         if not profile_record:
             return []
 
